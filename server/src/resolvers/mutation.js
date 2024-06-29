@@ -1,6 +1,8 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { AuthenticationError, ForbiddenError } from 'apollo-server-express'
+import mongoose from 'mongoose'
+
 import { gravatar } from '../util/gravatar.js'
 
 export const Mutation = {
@@ -54,10 +56,16 @@ export const Mutation = {
 		return jwt.sign({ id: user._id }, process.env.JWT_SECRET)
 	},
 
-	newNote: async (parent, args, { models }) => {
+	newNote: async (parent, args, { models, user }) => {
+		// Если в контексте нет пользователя, выбрасываем AuthenticationError
+		if (!user) {
+			throw new AuthenticationError('You must be signed in to create a note')
+		}
+
 		return await models.Note.create({
 			content: args.content,
-			author: 'Adam Scott',
+			// Ссылаемся на mongo id автора
+			author: mongoose.Types.ObjectId(user.id),
 		})
 	},
 
